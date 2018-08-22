@@ -14,13 +14,26 @@ HardwareSerial Serial1(2);
 void setup()
 {
   Serial.begin( 115200 );
-  Serial1.begin( 9600, SERIAL_8N1, 16, 17 );
-
   Serial.println( F( "DeviceExample" ) );
   Serial.println( F( "Exemplo de uso do TinyGPS++ com um módulo GPS" ) );
   Serial.print( F( "Testando biblioteca TinyGPS++ v. " ) ); 
   Serial.println( TinyGPSPlus::libraryVersion() );
   Serial.println();
+
+  Serial.println( "Aguardando 10 segundos...\n" );
+  delay(10000);
+
+  Serial.println( "Iniciando a Serial1 em 115200\n" );
+  Serial1.begin( 115200, SERIAL_8N1, 16, 17 );
+  String command = "AT+GPS=1\r\n";
+  Serial.printf( "Enviando o comando %s de tamanho %d.\n", command.c_str(), strlen(command.c_str()) );
+  Serial1.write( (uint8_t *)command.c_str(), strlen(command.c_str()) );
+  Serial.println( "Finalizando a porta Serial1 115200." );
+  Serial1.end();
+
+  delay(1000);
+  Serial.println( "Abrindo a porta Serial1 em 9600." );
+  Serial1.begin( 9600, SERIAL_8N1, 16, 17 );
 }
 
 void loop()
