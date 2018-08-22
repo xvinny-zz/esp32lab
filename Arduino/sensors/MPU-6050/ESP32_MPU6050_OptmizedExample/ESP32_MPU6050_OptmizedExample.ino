@@ -8,6 +8,9 @@
 #define MPU6050_WHO_AM_I     0x75
 #define MPU6050_PWR_MGMT_1   0x6b
 
+#define PIN_SDA               33  // SDA do MPU-6050
+#define PIN_SCL               32  // SCL do MPU-6050
+
 double offsetX = 0, offsetY = 0, offsetZ = 0;
 double gyro_angle_x = 0, gyro_angle_y = 0, gyro_angle_z = 0;
 float angleX, angleY, angleZ;
@@ -18,7 +21,8 @@ float gx, gy, gz, dpsX, dpsY, dpsZ;
 void culcRotation();
 
 //Write I2C
-void writeMPU6050(byte reg, byte data) {
+void writeMPU6050(byte reg, byte data) 
+{
   Wire.beginTransmission(MPU6050_ADDR);
   Wire.write(reg);
   Wire.write(data);
@@ -26,7 +30,8 @@ void writeMPU6050(byte reg, byte data) {
 }
 
 //Read I2C
-byte readMPU6050(byte reg) {
+byte readMPU6050(byte reg) 
+{
   Wire.beginTransmission(MPU6050_ADDR);
   Wire.write(reg);
   Wire.endTransmission(true);
@@ -35,15 +40,16 @@ byte readMPU6050(byte reg) {
   return data;
 }
 
-void setup() {
+void setup() 
+{
 
-  Wire.begin(26, 25);
+  Wire.begin(PIN_SDA, PIN_SCL);
   Wire.beginTransmission(MPU6050_ADDR);
   Wire.write(0x6B); // PWR_MGMT_1 register
   Wire.write(0); // set to zero (wakes up the MPU-6050)
   Wire.endTransmission(true);
   
-  Serial.begin(9600);
+  Serial.begin(115200);
   delay(100);
   
   // Check whether it is connected normally
@@ -103,21 +109,24 @@ void setup() {
   
 }
 
-void loop() {
+void loop() 
+{
 
   calcRotation();
+  delay(500);
 
-  Serial.print("angleX : ");
-  Serial.print(angleX);
-  Serial.print("    angleY : ");
-  Serial.print(angleY);
-  Serial.print("    angleZ : ");
-  Serial.println(angleZ);
+//  Serial.print("angleX : ");
+//  Serial.print(angleX);
+//  Serial.print("    angleY : ");
+//  Serial.print(angleY);
+//  Serial.print("    angleZ : ");
+//  Serial.println(angleZ);
  
 }
 
 //Calculate angle from acceleration, gyro
-void calcRotation(){
+void calcRotation()
+{
 
   int16_t raw_acc_x, raw_acc_y, raw_acc_z, raw_t, raw_gyro_x, raw_gyro_y, raw_gyro_z ;
   
@@ -165,4 +174,6 @@ void calcRotation(){
   gyro_angle_x = angleX;
   gyro_angle_y = angleY;
   gyro_angle_z = angleZ;
+
+  Serial.printf("ACC(%d,%d,%d) GYRO(%d,%d,%d)\n", raw_acc_x, raw_acc_y, raw_acc_z, raw_t, raw_gyro_x, raw_gyro_y, raw_gyro_z);
 }
