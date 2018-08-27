@@ -1,0 +1,11 @@
+ESP-IDF/Azure/ESP32_IOTHub_Sample/build
+ESP-IDF/GPIO/inputOutputTest/build
+ESP-IDF/MPU6050/MPU6050Demo/build
+ESP-IDF/Storage/nvs_rw_blob/build
+ESP-IDF/Storage/nvs_rw_value/build
+ESP-IDF/Storage/sd_card/build
+ESP-IDF/WiFi/ESP32_WifiScan-master
+ESP-IDF/WiFi/wifi3GConnectionManagerTest
+ESP-IDF/WiFi/wifiConnection
+ESP-IDF/WiFi/wifiEventHandling
+ESP-IDF/WiFi/wifiScanTest
