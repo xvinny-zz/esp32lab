@@ -6,6 +6,8 @@ void setup()
     ConnectionManager.begin();
 }
 
-void loop() {
-    // put your main code here, to run repeatedly:
+void loop() 
+{
+    ESP_LOGI("MAIN", "Fazendo outra coisa...");
+    delay(5000);
 }

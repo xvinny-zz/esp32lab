@@ -29,7 +29,7 @@ struct ConnectionProperties
 class ConnectionManagerClass
 {
     public:
-        ConnectionManagerClass();
+        ConnectionManagerClass(){}
         void begin();
         void postMessage();
 };

@@ -38,8 +38,9 @@ void monitorConnectivity( void *pvParameters )
     {
         if ( m_connectionProperties.IsModemStarted == false )
         {
-            ESP_LOGE("[MM]", "Restartando o modem");
+            ESP_LOGI("[MM]", "Restartando o modem");
             m_connectionProperties.IsModemStarted = _modem.restart();
+            ESP_LOGI("[MM]", "Modem restartado.");
             if ( m_connectionProperties.IsModemStarted == false )
             {
                 ESP_LOGE("[MM]", "Nao foi possivel reiniciar o modem GSM... Aguardando 1s para tentar novamente...");
@@ -49,8 +50,6 @@ void monitorConnectivity( void *pvParameters )
         else
         {
             // Se ja esta startado, verifica a conectividade com a rede continuamente...
-            m_connectionProperties.IsNetworkConnected = _modem.isNetworkConnected();
-            
             if (m_connectionProperties.IsNetworkConnected == false)
             {
                 ESP_LOGI("[MM]", "Nao esta conectado a rede GSM. Aguardando rede por ate 60s...");
@@ -59,43 +58,41 @@ void monitorConnectivity( void *pvParameters )
                 {
                     ESP_LOGI("[MM]", "Continua nao conectado a rede GSM. Tentaremos novamente apos alguns instantes...");
                 }
-                else
+            }
+            else
+            {
+                // Se ja esta conectado na rede, verifica a conectividade GPRS...
+                ESP_LOGI("[MM]", "Conectado a rede GSM. Verificando a conectividade GPRS...");
+                m_connectionProperties.IsGPRSConnected = _modem.isGprsConnected();
+                if ( m_connectionProperties.IsGPRSConnected == false )
                 {
-                    // Se ja esta conectado na rede, verifica a conectividade GPRS...
-                    ESP_LOGI("[MM]", "Conectado a rede GSM. Verificando a conectividade GPRS...");
-                    m_connectionProperties.IsGPRSConnected = _modem.isGprsConnected();
+                    ESP_LOGI("[MM]", "Tentando conectar na GPRS...");
+                    m_connectionProperties.IsGPRSConnected = _modem.gprsConnect( apn, user, pass );
                     if ( m_connectionProperties.IsGPRSConnected == false )
                     {
-                        ESP_LOGI("[MM]", "Tentando conectar na GPRS...");
-                        m_connectionProperties.IsGPRSConnected = _modem.gprsConnect( apn, user, pass );
-                        if ( m_connectionProperties.IsGPRSConnected == false )
-                        {
-                            ESP_LOGE("[MM]", "Falha ao tentar conectar via GPRS. Tentando novamente em alguns instantes...");
-                        }
-                        else
-                        {
-                            ESP_LOGI("[MM]", "Conectado via GPRS com sucesso...");
-                        }
+                        ESP_LOGE("[MM]", "Falha ao tentar conectar via GPRS. Tentando novamente em alguns instantes...");
                     }
                     else
                     {
-                        m_connectionProperties.Operator = _modem.getOperator();
-                        m_connectionProperties.LocalIP = _modem.localIP();
-                        m_connectionProperties.SignalQuality = _modem.getSignalQuality();
-                        ESP_LOGI("[MM]", "Operadora: [%s], IP: [%s], Sinal: [%d]", 
-                                                            m_connectionProperties.Operator.c_str(),
-                                                            m_connectionProperties.LocalIP.toString().c_str(),
-                                                            m_connectionProperties.SignalQuality);
+                        ESP_LOGI("[MM]", "Conectado via GPRS com sucesso...");
                     }
+                }
+                else
+                {
+                    m_connectionProperties.Operator = _modem.getOperator();
+                    m_connectionProperties.LocalIP = _modem.localIP();
+                    m_connectionProperties.SignalQuality = _modem.getSignalQuality();
+                    ESP_LOGI("[MM]", "Operadora: [%s], IP: [%s], Sinal: [%d]", 
+                                                        m_connectionProperties.Operator.c_str(),
+                                                        m_connectionProperties.LocalIP.toString().c_str(),
+                                                        m_connectionProperties.SignalQuality);
+                    delay(10000);
                 }
             }
         }
+
+        delay(10);
     }
-}
-
-ConnectionManagerClass::ConnectionManagerClass()
-{
-
 }
 
 void ConnectionManagerClass::begin()
@@ -104,7 +101,7 @@ void ConnectionManagerClass::begin()
     {
         s_monitorMutex = xSemaphoreCreateMutex();
         SerialAT.begin( 115200, SERIAL_8N1, GSM_TX, GSM_RX, false );
-        xTaskCreate( monitorConnectivity, "MonitorConnectivity", 10240, NULL, 1, s_monitorTaskHandle );
+        xTaskCreatePinnedToCore( monitorConnectivity, "MonitorConnectivity", 10240, NULL, 1, s_monitorTaskHandle, 1 );
     }
 }
 
