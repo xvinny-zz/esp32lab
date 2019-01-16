@@ -26,6 +26,7 @@
  *   node-red-dashboard
  *
  **************************************************************/
+#include <rom/rtc.h>
 #include "LedHandler.h"
 
 // Select your modem:
@@ -58,6 +59,7 @@ const char apn[] = "timbrasil.br";
 const char user[] = "tim";
 const char pass[] = "tim";
 
+const char *deviceId = "GsmClient";
 // MQTT details
 //const char* broker = "test.mosquitto.org";
 const char *broker = "m13.cloudmqtt.com";
@@ -74,18 +76,25 @@ TinyGsm modem(SerialAT);
 TinyGsmClient client(modem);
 PubSubClient mqtt(client);
 
-#define LED_PIN 13
+#define LED_PIN 27
 int ledStatus = LOW;
 
 long lastReconnectAttempt = 0;
 
 void mqttCallback(char *topic, byte *payload, unsigned int len);
 boolean mqttConnect();
+void print_reset_reason(RESET_REASON reason);
 
 void setup()
 {
     // Set console baud rate
     SerialMon.begin(115200);
+
+    Serial.println("CPU0 reset reason: ");
+    print_reset_reason(rtc_get_reset_reason(0));
+
+    Serial.println("CPU1 reset reason: ");
+    print_reset_reason(rtc_get_reset_reason(1));
 
     SerialMon.println("Iniciando controlador dos leds...");
     LedController.begin();
@@ -110,8 +119,7 @@ void setup()
     if (!modem.waitForNetwork())
     {
         SerialMon.println(" fail");
-        while (true)
-            ;
+        while (true);
     }
     SerialMon.println(" OK");
 
@@ -160,7 +168,8 @@ void loop()
     SerialMon.printf("Status GPRS: %s\n", modem.isGprsConnected() ? "connected" : "not connected");
     SerialMon.printf("Qualidade do sinal: %d\n", modem.getSignalQuality());
     SerialMon.printf("Nivel da bateria: %d\n", modem.getBattPercent());
-    SerialMon.printf("Tensao da bateria: %.2f\n", modem.getBattVoltage());
+    uint16_t voltage = modem.getBattVoltage();
+    SerialMon.printf("Tensao da bateria: %.2f\n", voltage > 32 ? -1 : voltage );
     // This is only supported on SIMxxx series
     String gsmTime = modem.getGSMDateTime(DATE_TIME);
     SerialMon.printf("GSM Hora: %s\n", gsmTime.c_str());
@@ -181,7 +190,7 @@ boolean mqttConnect()
     //boolean status = mqtt.connect("GsmClientTest");
 
     // Or, if you want to authenticate MQTT:
-    boolean status = mqtt.connect("GsmClient", mqttUser, mqttPassword);
+    boolean status = mqtt.connect(deviceId, mqttUser, mqttPassword);
 
     if (status == false)
     {
@@ -211,4 +220,27 @@ void mqttCallback(char *topic, byte *payload, unsigned int len)
         SerialMon.printf("Publicando status do led: %d\n", ledStatus);
         mqtt.publish(topicLedStatus, ledStatus ? "1" : "0");
     }
+}
+
+void print_reset_reason(RESET_REASON reason)
+{
+  switch ( reason)
+  {
+    case 1 : Serial.println ("POWERON_RESET");break;          /**<1, Vbat power on reset*/
+    case 3 : Serial.println ("SW_RESET");break;               /**<3, Software reset digital core*/
+    case 4 : Serial.println ("OWDT_RESET");break;             /**<4, Legacy watch dog reset digital core*/
+    case 5 : Serial.println ("DEEPSLEEP_RESET");break;        /**<5, Deep Sleep reset digital core*/
+    case 6 : Serial.println ("SDIO_RESET");break;             /**<6, Reset by SLC module, reset digital core*/
+    case 7 : Serial.println ("TG0WDT_SYS_RESET");break;       /**<7, Timer Group0 Watch dog reset digital core*/
+    case 8 : Serial.println ("TG1WDT_SYS_RESET");break;       /**<8, Timer Group1 Watch dog reset digital core*/
+    case 9 : Serial.println ("RTCWDT_SYS_RESET");break;       /**<9, RTC Watch dog Reset digital core*/
+    case 10 : Serial.println ("INTRUSION_RESET");break;       /**<10, Instrusion tested to reset CPU*/
+    case 11 : Serial.println ("TGWDT_CPU_RESET");break;       /**<11, Time Group reset CPU*/
+    case 12 : Serial.println ("SW_CPU_RESET");break;          /**<12, Software reset CPU*/
+    case 13 : Serial.println ("RTCWDT_CPU_RESET");break;      /**<13, RTC Watch dog Reset CPU*/
+    case 14 : Serial.println ("EXT_CPU_RESET");break;         /**<14, for APP CPU, reseted by PRO CPU*/
+    case 15 : Serial.println ("RTCWDT_BROWN_OUT_RESET");break;/**<15, Reset when the vdd voltage is not stable*/
+    case 16 : Serial.println ("RTCWDT_RTC_RESET");break;      /**<16, RTC Watch dog reset digital core and rtc module*/
+    default : Serial.println ("NO_MEAN");
+  }
 }
