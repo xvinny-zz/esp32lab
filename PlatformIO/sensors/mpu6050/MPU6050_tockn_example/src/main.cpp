@@ -7,7 +7,7 @@ long timer = 0;
 
 void setup() 
 {
-    Serial.begin(9600);
+    Serial.begin(115200);
     Wire.begin(33,32);
     mpu6050.begin();
     mpu6050.calcGyroOffsets(true);
