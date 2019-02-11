@@ -172,7 +172,9 @@ class E32TTL100Class
         void resetModule();
         RET_STATUS executeCommandInSleepMode(uint8_t CMD, void* pBuff);
         RET_STATUS configureModule(struct E32_CONFIG_t *pCFG);
-        RET_STATUS sendMessage();
+        RET_STATUS sendMessageBroadCast();
+        RET_STATUS sendMessageBroadCast(String message);
+        RET_STATUS sendMessageBroadCast(const uint8_t * message, size_t length);
         String getErrorMessage(RET_STATUS result);
     private:
         void cleanUARTBuffer();

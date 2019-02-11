@@ -4,7 +4,7 @@
 #define SerialLoRa Serial2
 #define PIN_LORA_AUX GPIO_NUM_19
 #define PIN_LORA_M0 GPIO_NUM_27
-#define PIN_LORA_M1 GPIO_NUM_25
+#define PIN_LORA_M1 GPIO_NUM_15
 #define PIN_LORA_RX GPIO_NUM_14 // O RX do modulo esta ligado no pino IO14 do ESP32
 #define PIN_LORA_TX GPIO_NUM_13 // O TX do modulo esta ligado no pino IO13 do ESP32
 
@@ -30,6 +30,8 @@ void setup()
     }
 }
 
+int count = 0;
+
 void loop()
 {
     uint8_t dataBuffer[100], dataLength;
@@ -47,7 +49,17 @@ void loop()
         ESP_LOGI( TAG_E32, "Mensagem recebida: %s", receivedMessage.c_str());
     }
 
-    E32TTL100.sendMessage();
 
-    delay(1000);
+    if (count++ % 100 == 0)
+    {
+        ESP_LOGI(TAG_E32, "[%lu] Enviando mensagem...", millis());
+        uint8_t buffer[] = {0x30,0x31,0x32,0x33,0x34,0x35,0x36,0x20};
+        
+        if (E32TTL100.sendMessageBroadCast(buffer, sizeof(buffer)) != RET_SUCCESS)
+            ESP_LOGE(TAG_E32, "[%lu] Falha ao enviar a mensagem...", millis());
+
+        ESP_LOGI(TAG_E32, "[%lu] Aguardando mensagens...", millis());
+    }
+
+    delay(100);
 }

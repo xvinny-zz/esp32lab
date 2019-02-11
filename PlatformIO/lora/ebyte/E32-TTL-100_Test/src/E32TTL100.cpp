@@ -12,8 +12,6 @@ RET_STATUS E32TTL100Class::begin(E32_PIN_t pins, HardwareSerial *monitorSerial, 
     struct E32_CONFIG_t config;
     struct E32_MODULE_VERSION_t moduleVersion;
 
-    ESP_LOGI( TAG_E32, "[%lu]Inicializando o modulo E32-TTL-100.", millis());
-
     m_pins = pins;
     
     pinMode(m_pins.M0, OUTPUT);
@@ -24,35 +22,41 @@ RET_STATUS E32TTL100Class::begin(E32_PIN_t pins, HardwareSerial *monitorSerial, 
     //g_monitorSerial->begin(SERIAL_BAUD_RATE);
 
     status = executeCommandInSleepMode(READ_CONFIG, (void *)&config);
-    ESP_LOGI(TAG_E32, "[%lu]Leitura de configuracoes [%s]", millis(), getErrorMessage(status).c_str());
     if (status != RET_SUCCESS)
         return status;
     
     ESP_LOGI(TAG_E32, "[%lu]Configuracoes: (Header: %02X, AddressH: %02X, AddressL: %02X, Ch: %02X)", millis(), config.Header, config.AddressHigh, config.AddressLow, config.Channel);
-    ESP_LOGI(TAG_E32, "[%lu]SPED: (air_bps: %02x, uart_bps: %02X, uart_fmt: %02x)", millis(), 
-                        config.SPEDConfig.air_bps, config.SPEDConfig.uart_bps, config.SPEDConfig.uart_fmt);
-    ESP_LOGI(TAG_E32, "[%lu]OPTIONS: (trsm_mode: %02x, drive_mode: %02X, wakeup_time: %02x, enFWC: %02X, tsmt_pwr: %02X)", millis(), 
-                config.OptionConfig.trsm_mode, config.OptionConfig.drive_mode, config.OptionConfig.wakeup_time, config.OptionConfig.enFWC, config.OptionConfig.tsmt_pwr);
+    ESP_LOGI(TAG_E32, "[%lu]SPED: (air_bps: %02x, uart_bps: %02X, uart_fmt: %02x)", millis(), config.SPEDConfig.air_bps, config.SPEDConfig.uart_bps, config.SPEDConfig.uart_fmt);
+    ESP_LOGI(TAG_E32, "[%lu]OPTIONS: (trsm_mode: %02x, drive_mode: %02X, wakeup_time: %02x, enFWC: %02X, tsmt_pwr: %02X)", millis(), config.OptionConfig.trsm_mode, config.OptionConfig.drive_mode, config.OptionConfig.wakeup_time, config.OptionConfig.enFWC, config.OptionConfig.tsmt_pwr);
 
     status = configureModule(&config);
     ESP_LOGI(TAG_E32, "[%lu]Configuracao do modulo [%s]", millis(), getErrorMessage(status).c_str());
+    if (status != RET_SUCCESS)
+        return status;
 
     status = executeCommandInSleepMode(READ_MODULE_VERSION, (void *)&moduleVersion);
-    ESP_LOGI(TAG_E32, "[%lu]Leitura da versao do modulo [%s]", millis(), getErrorMessage(status).c_str());
+    if (status != RET_SUCCESS)
+        ESP_LOGE(TAG_E32, "[%lu]Falha ao ler a versao do modulo. Mensagem: %s", millis(), getErrorMessage(status).c_str());
+    else
+        ESP_LOGI(TAG_E32, "[%lu]Modelo [%02X] | Versao: [%02X]", millis(), moduleVersion.Model, moduleVersion.Version);
 
     // Mode 0 | normal operation
     status = switchMode(initialMode);
-    ESP_LOGI(TAG_E32, "[%lu]Troca de modo [%s]", millis(), getErrorMessage(status).c_str());
+    if (status != RET_SUCCESS)
+    {
+        ESP_LOGE(TAG_E32, "[%lu]Falha ao trocar para o modo normal. Mensagem: %s", millis(), getErrorMessage(status).c_str());
+        return status;
+    }
+    else
+        ESP_LOGI(TAG_E32, "[%lu]Modo trocado para [%s]", millis(), getModeString(initialMode).c_str());
 
     //self-check initialization.
     status = waitAuxPinHigh();
-    ESP_LOGD(TAG_E32, "[%lu]Leitura do pino Aux [%s]", millis(), getErrorMessage(status).c_str());
-    delay(10);
-
     if (status == RET_SUCCESS)
-        ESP_LOGI( TAG_E32, "[%lu]Modulo inicializado com sucesso.", millis());
+        ESP_LOGI(TAG_E32, "[%lu] Pino aux alto. Equipamento liberado!", millis());
     else
-        ESP_LOGE( TAG_E32, "[%lu]Falha ao inicializar o modulo.", millis());
+        ESP_LOGE(TAG_E32, "[%lu] Falha na leitura do pino Aux. Mensagem: %s", millis(), getErrorMessage(status).c_str());
+    delay(10);
 
     return status;
 }
@@ -84,14 +88,7 @@ RET_STATUS E32TTL100Class::readConfiguration(struct E32_CONFIG_t *pConfig)
     STATUS = getModuleInfo((uint8_t *)pConfig, sizeof(E32_CONFIG_t));
     if (STATUS == RET_SUCCESS)
     {
-        Serial.print("  Headerer:     ");
-        Serial.println(pConfig->Header, HEX);
-        Serial.print("  AddressHigh:     ");
-        Serial.println(pConfig->AddressHigh, HEX);
-        Serial.print("  AddressLow:     ");
-        Serial.println(pConfig->AddressLow, HEX);
-        Serial.print("  Channel:     ");
-        Serial.println(pConfig->Channel, HEX);
+        ESP_LOGI(TAG_E32, "Settings: (Header: 0x%02x | AddH: %02X | AddL: %02X | CH: %02X)", pConfig->Header, pConfig->AddressHigh, pConfig->AddressLow, pConfig->Channel);
     }
 
     return STATUS;
@@ -129,7 +126,7 @@ RET_STATUS E32TTL100Class::getModuleInfo(uint8_t *pReadbuf, uint8_t buf_len)
         for (idx = 0; idx < buf_len; idx++)
         {
             *(pReadbuf + idx) = g_monitorSerial->read();
-            receivedBytes = receivedBytes + "0x " + String(0xFF & *(pReadbuf + idx), HEX);
+            receivedBytes = receivedBytes + "0x" + String(0xFF & *(pReadbuf + idx), HEX) + " ";
             //Serial.print(" 0x");
             //Serial.print(0xFF & *(pReadbuf + idx), HEX); // print as an ASCII-encoded hexadecimal
         }
@@ -180,7 +177,7 @@ RET_STATUS E32TTL100Class::receiveMessage(uint8_t *pDataBuffer, uint8_t *pdataLe
     return STATUS;
 }
 
-RET_STATUS E32TTL100Class::sendMessage()
+RET_STATUS E32TTL100Class::sendMessageBroadCast()
 {
     RET_STATUS STATUS = RET_SUCCESS;
 
@@ -199,11 +196,54 @@ RET_STATUS E32TTL100Class::sendMessage()
         //TRSM_FP_MODE
         //Send format : AddressHigh AddressLow Channel DATA_0 DATA_1 DATA_2 ...
 #ifdef Device_A
-    uint8_t inputBuffer[4] = {DEVICE_B_ADDR_H, DEVICE_B_ADDR_L, 0x17, (uint8_t)random(0x00, 0x80)}; //for A
+    //uint8_t inputBuffer[4] = {DEVICE_B_ADDR_H, DEVICE_B_ADDR_L, 0x17, (uint8_t)random(0x00, 0x80)}; //for A
+    uint8_t inputBuffer[6] = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35}; //for A
 #else
     uint8_t inputBuffer[4] = {DEVICE_A_ADDR_H, DEVICE_A_ADDR_L, 0x17, random(0x81, 0xFF)}; //for B
 #endif
-    g_monitorSerial->write(inputBuffer, 4);
+    g_monitorSerial->write(inputBuffer, sizeof(inputBuffer));
+
+    return STATUS;
+}
+
+RET_STATUS E32TTL100Class::sendMessageBroadCast(String message)
+{
+    RET_STATUS STATUS = RET_SUCCESS;
+
+    ESP_LOGI(TAG_E32, "[%lu]Enviando mensagem string...", millis());
+
+    switchMode(MODE_0_NORMAL);
+
+    if (isAuxPinHigh() != HIGH)
+        return RET_NOT_IMPLEMENT;
+
+    delay(10);
+
+    if (isAuxPinHigh() != HIGH)
+        return RET_NOT_IMPLEMENT;
+
+    g_monitorSerial->print(message.c_str());
+
+    return STATUS;
+}
+
+RET_STATUS E32TTL100Class::sendMessageBroadCast(const uint8_t * message, size_t length)
+{
+    RET_STATUS STATUS = RET_SUCCESS;
+
+    ESP_LOGI(TAG_E32, "[%lu]Enviando mensagem char array...", millis());
+
+    switchMode(MODE_0_NORMAL);
+
+    if (isAuxPinHigh() != HIGH)
+        return RET_NOT_IMPLEMENT;
+
+    delay(10);
+
+    if (isAuxPinHigh() != HIGH)
+        return RET_NOT_IMPLEMENT;
+
+    g_monitorSerial->write(message, length);
 
     return STATUS;
 }
@@ -440,22 +480,37 @@ RET_STATUS E32TTL100Class::configureModule(struct E32_CONFIG_t *pCFG)
 {
     RET_STATUS STATUS = RET_SUCCESS;
 
+    ESP_LOGI(TAG_E32, "[%lu] Configurando o modulo...", millis());
+
 #ifdef Device_A
-    pCFG->AddressHigh = DEVICE_A_ADDR_H;
-    pCFG->AddressLow = DEVICE_A_ADDR_L;
+    //pCFG->AddressHigh = DEVICE_A_ADDR_H;
+    pCFG->AddressHigh = 0x00;
+    //pCFG->AddressLow = DEVICE_A_ADDR_L;
+    pCFG->AddressLow = 0x00;
 #else
     pCFG->AddressHigh = DEVICE_B_ADDR_H;
     pCFG->AddressLow = DEVICE_B_ADDR_L;
 #endif
 
-    pCFG->OptionConfig.trsm_mode = TRSM_FP_MODE;
+    // TODO: alterado de modo Fixed para Transparente
+    //pCFG->OptionConfig.trsm_mode = TRSM_FP_MODE;
+    pCFG->OptionConfig.trsm_mode = TRSM_TT_MODE;
     pCFG->OptionConfig.tsmt_pwr = TSMT_PWR_10DB;
 
     STATUS = executeCommandInSleepMode(WRITE_CONFIG_POWER_DOWN_SAVE, (void *)pCFG);
 
+    ESP_LOGI(TAG_E32, "[%lu] Resetando o modulo...", millis());
     executeCommandInSleepMode(WRITE_RESET_MODULE, NULL);
 
+    ESP_LOGI(TAG_E32, "[%lu] Lendo as configuracoes do modulo...", millis());
     STATUS = executeCommandInSleepMode(READ_CONFIG, (void *)pCFG);
+
+    ESP_LOGI(TAG_E32, "[%lu]Configuracoes: (Header: %02X, AddressH: %02X, AddressL: %02X, Ch: %02X)", millis(), pCFG->Header, pCFG->AddressHigh, pCFG->AddressLow, pCFG->Channel);
+    ESP_LOGI(TAG_E32, "[%lu]SPED: (air_bps: %02x, uart_bps: %02X, uart_fmt: %02x)", millis(), 
+                        pCFG->SPEDConfig.air_bps, pCFG->SPEDConfig.uart_bps, pCFG->SPEDConfig.uart_fmt);
+    ESP_LOGI(TAG_E32, "[%lu]OPTIONS: (trsm_mode: %02x, drive_mode: %02X, wakeup_time: %02x, enFWC: %02X, tsmt_pwr: %02X)", millis(), 
+                pCFG->OptionConfig.trsm_mode, pCFG->OptionConfig.drive_mode, pCFG->OptionConfig.wakeup_time, pCFG->OptionConfig.enFWC, pCFG->OptionConfig.tsmt_pwr);
+
 
     return STATUS;
 }

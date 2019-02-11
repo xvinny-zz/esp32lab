@@ -30,11 +30,18 @@ void loop()
 {
     Serial.println("Teste dos Leds");
 
-    for (int i = 0; i < 2; i++)
+    // for (int i = 0; i < 2; i++)
+    // {
+    //     show30(200);
+    //     //showGradient();
+    //     delay(50);
+    // }
+
+    for (int i = 0; i < LED_COUNT; i++)
     {
-        show30(200);
-        delay(50);
+        leds[i] = Rgb(0,0,150);
     }
+    leds.show();
 
     //delay(5000);
     //  if (millis() % 10000 < 5000)
