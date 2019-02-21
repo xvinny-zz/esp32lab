@@ -49,12 +49,14 @@
 //
 //======================================================================
 #include <Arduino.h>
+
 #include <NMEAGPS.h>
 
 //-------------------------------------------------------------------------
 //  The GPSport.h include file tries to choose a default serial port
 //  for the GPS device.  If you know which serial port you want to use,
 //  edit the GPSport.h file.
+#define SERIAL_PORT_HARDWARE_OPEN Serial2
 #include <GPSport.h>
 
 //------------------------------------------------------------
@@ -111,16 +113,18 @@ static void GPSloop()
 
 void setup()
 {
-  DEBUG_PORT.begin(9600);
+  DEBUG_PORT.begin(115200);
   while (!DEBUG_PORT)
     ;
 
+    ESP_LOGI("MAIN", "NMEA.INO: started\n");
+    
   DEBUG_PORT.print( F("NMEA.INO: started\n") );
-  DEBUG_PORT.print( F("  fix object size = ") );
-  DEBUG_PORT.println( sizeof(gps.fix()) );
-  DEBUG_PORT.print( F("  gps object size = ") );
-  DEBUG_PORT.println( sizeof(gps) );
-  DEBUG_PORT.println( F("Looking for GPS device on " GPS_PORT_NAME) );
+  ESP_LOGI("MAIN", "  fix object size = ");
+  ESP_LOGI("MAIN", sizeof(gps.fix()) );
+  ESP_LOGI("MAIN", "  gps object size = " );
+  ESP_LOGI("MAIN", sizeof(gps) );
+  ESP_LOGI("MAIN", "Looking for GPS device on " GPS_PORT_NAME );
 
   #ifndef NMEAGPS_RECOGNIZE_ALL
     #error You must define NMEAGPS_RECOGNIZE_ALL in NMEAGPS_cfg.h!
@@ -148,9 +152,9 @@ void setup()
     }
   #endif
 
-  DEBUG_PORT.print  ( F("\nGPS quiet time is assumed to begin after a ") );
-  DEBUG_PORT.print  ( gps.string_for( LAST_SENTENCE_IN_INTERVAL ) );
-  DEBUG_PORT.println( F(" sentence is received.\n"
+  ESP_LOGI("MAIN", "\nGPS quiet time is assumed to begin after a " );
+  ESP_LOGI("MAIN", gps.string_for( LAST_SENTENCE_IN_INTERVAL ));
+  ESP_LOGI("MAIN", (" sentence is received.\n"
                         "  You should confirm this with NMEAorder.ino\n") );
 
   trace_header( DEBUG_PORT );
