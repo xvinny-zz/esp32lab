@@ -36,39 +36,37 @@
 
 #include <GPSport.h>
 
-NMEAGPS gps; // This parses the GPS characters
-gps_fix fix; // This holds on to the latest values
+NMEAGPS  gps; // This parses the GPS characters
+gps_fix  fix; // This holds on to the latest values
 
 void setup()
 {
-    DEBUG_PORT.begin(115200);
-    while (!Serial)
-        ;
-    DEBUG_PORT.print(F("NMEAsimple.INO: started\n"));
+  DEBUG_PORT.begin(9600);
+  while (!Serial)
+    ;
+  DEBUG_PORT.print( F("NMEAsimple.INO: started\n") );
 
-    gpsPort.begin(115200, SERIAL_8N1, 16, 17);
+  gpsPort.begin(9600);
 }
 
 //--------------------------
 
 void loop()
 {
-    while (gps.available(gpsPort))
-    {
-        fix = gps.read();
+  while (gps.available( gpsPort )) {
+    fix = gps.read();
 
-        DEBUG_PORT.print(F("Location: "));
-        if (fix.valid.location)
-        {
-            DEBUG_PORT.print(fix.latitude(), 6);
-            DEBUG_PORT.print(',');
-            DEBUG_PORT.print(fix.longitude(), 6);
-        }
-
-        DEBUG_PORT.print(F(", Altitude: "));
-        if (fix.valid.altitude)
-            DEBUG_PORT.print(fix.altitude());
-
-        DEBUG_PORT.println();
+    DEBUG_PORT.print( F("Location: ") );
+    if (fix.valid.location) {
+      DEBUG_PORT.print( fix.latitude(), 6 );
+      DEBUG_PORT.print( ',' );
+      DEBUG_PORT.print( fix.longitude(), 6 );
     }
+
+    DEBUG_PORT.print( F(", Altitude: ") );
+    if (fix.valid.altitude)
+      DEBUG_PORT.print( fix.altitude() );
+
+    DEBUG_PORT.println();
+  }
 }
