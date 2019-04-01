@@ -29,8 +29,8 @@ AnimEaseFunction moveEase =
 //      NeoEase::Linear;
 //      NeoEase::QuadraticInOut;
 //      NeoEase::CubicInOut;
-        NeoEase::QuarticInOut;
-//      NeoEase::QuinticInOut;
+//      NeoEase::QuarticInOut;
+      NeoEase::QuinticInOut;
 //      NeoEase::SinusoidalInOut;
 //      NeoEase::ExponentialInOut;
 //      NeoEase::CircularInOut;
