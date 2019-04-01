@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WebServer.h>
@@ -5,8 +6,8 @@
 #include <Update.h>
 #include <ArduinoJson.h>
 
-#define GPIO_LED_BLUE   2
-#define GPIO_LED_RED    14
+//#define GPIO_LED_BLUE   2
+//#define GPIO_LED_RED    14
 
 const char* host = "esp32";
 const char* ssid = "qflux";
@@ -102,6 +103,20 @@ const char* serverIndex =
  "});"
  "</script>";
 
+
+void taskOne( void * parameter )
+{
+    _isTaskOneActive = true;
+
+    while (_isTaskOneActive)
+    {
+        server.handleClient();
+        delay(1);
+    }
+
+    vTaskDelete( NULL );
+}
+
 /*
  * setup function
  */
@@ -109,15 +124,8 @@ void setup(void)
 {
     Serial.begin(115200);
 
-    pinMode( GPIO_LED_BLUE, OUTPUT );
-    digitalWrite( GPIO_LED_BLUE, LOW );
-
-    pinMode( GPIO_LED_RED, OUTPUT );
-    digitalWrite( GPIO_LED_RED, LOW );
-
     // Connect to WiFi network
     WiFi.begin(ssid, password);
-    Serial.println("");
 
     // Wait for connection
     while (WiFi.status() != WL_CONNECTED) 
@@ -203,23 +211,8 @@ void setup(void)
 
 }
 
-void taskOne( void * parameter )
-{
-    _isTaskOneActive = true;
-
-    while (_isTaskOneActive)
-    {
-        server.handleClient();
-        delay(1);
-    }
-
-    vTaskDelete( NULL );
-}
-
 void loop(void) 
 {
-    digitalWrite( GPIO_LED_BLUE, HIGH );
-    delay(100);
-    digitalWrite( GPIO_LED_BLUE, LOW );
-    delay(100);
+    Serial.println("Loop process...");
+    delay(2000);
 }
