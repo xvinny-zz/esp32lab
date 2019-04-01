@@ -3,7 +3,7 @@
 
 #define SerialGPS Serial2
 #define SERIAL_BAUD_RATE 115200
-#define GPS_BAUD_RATE 115200
+#define GPS_BAUD_RATE 9600
 
 static void smartDelay(unsigned long ms);
 
