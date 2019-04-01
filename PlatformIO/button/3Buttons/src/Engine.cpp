@@ -13,6 +13,8 @@ EngineClass::EngineClass()
 
 void EngineClass::begin()
 {
+    g_buttonOperationQueue = xQueueCreate(20, sizeof(int));
+
     ButtonSettings_t settings = {
         .Button1Pin = PIN_BUTTON_1,
         .Button2Pin = PIN_BUTTON_2,
@@ -50,7 +52,7 @@ void EngineClass::OnButtonPressed(ButtonEventData_t eventData)
         break;
     }
     case BUTTON_2:
-        if (eventData.PressedTime > 3) // se pressionado por mais de 3 segundos, indica SOS
+        if (eventData.PressedTime > 3000) // se pressionado por mais de 3 segundos, indica SOS
         {
             operation = OP_002;
             xQueueSend(g_buttonOperationQueue, &operation, portMAX_DELAY);
@@ -65,7 +67,7 @@ void EngineClass::OnButtonPressed(ButtonEventData_t eventData)
         ESP_LOGD(TAG_ENGINE, "Foi pressionado o botao 2 por %dms.", eventData.PressedTime);
         break;
     case BUTTON_3:
-        if (eventData.PressedTime > 3) // se pressionado por mais de 3 segundos, indica Emergencia
+        if (eventData.PressedTime > 3000) // se pressionado por mais de 3 segundos, indica Emergencia
         {
             operation = OP_004;
             xQueueSend(g_buttonOperationQueue, &operation, portMAX_DELAY);
