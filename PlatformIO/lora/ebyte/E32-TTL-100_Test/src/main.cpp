@@ -2,11 +2,14 @@
 #include "E32TTL100.h"
 
 #define SerialLoRa Serial2
-#define PIN_LORA_AUX GPIO_NUM_19
-#define PIN_LORA_M0 GPIO_NUM_27
-#define PIN_LORA_M1 GPIO_NUM_15
-#define PIN_LORA_RX GPIO_NUM_14 // O RX do modulo esta ligado no pino IO14 do ESP32
-#define PIN_LORA_TX GPIO_NUM_13 // O TX do modulo esta ligado no pino IO13 do ESP32
+
+#define PIN_LORA_AUX    GPIO_NUM_19
+#define PIN_LORA_M0     GPIO_NUM_27
+#define PIN_LORA_M1     GPIO_NUM_15
+#define PIN_LORA_RX     GPIO_NUM_14     // O RX do modulo esta ligado no pino IO14 do ESP32
+#define PIN_LORA_TX     GPIO_NUM_13     // O TX do modulo esta ligado no pino IO13 do ESP32
+
+int count = 0;
 
 void setup()
 {
@@ -29,8 +32,6 @@ void setup()
         ESP.restart();
     }
 }
-
-int count = 0;
 
 void loop()
 {
