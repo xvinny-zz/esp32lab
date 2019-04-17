@@ -21,6 +21,9 @@ struct ButtonSettings_t
     gpio_num_t Button1Pin;
     gpio_num_t Button2Pin;
     gpio_num_t Button3Pin;
+    gpio_num_t Button1Led;
+    gpio_num_t Button2Led;
+    gpio_num_t Button3Led;
 };
 
 #endif // __BUTTON_LIBRARY_H__

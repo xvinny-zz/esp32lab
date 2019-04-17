@@ -23,6 +23,7 @@ void IRAM_ATTR OnButton1Pressed()
         if (currentState)
         {
             ESP_LOGI(TAG_BUTTONMANAGER, "Botao 1 solto");
+            digitalWrite(g_settings.Button1Led, LOW);
             ButtonEventData_t eventData;
             eventData.PressedTime = currentTime - g_button1PressedTime;
             eventData.Source = BUTTON_1;
@@ -31,6 +32,7 @@ void IRAM_ATTR OnButton1Pressed()
         else
         {
             ESP_LOGI(TAG_BUTTONMANAGER, "Botao 1 pressionado");
+            digitalWrite(g_settings.Button1Led, HIGH);
             g_button1PressedTime = currentTime;
         }
         
@@ -52,6 +54,7 @@ void IRAM_ATTR OnButton2Pressed()
         if (currentState)
         {
             ESP_LOGI(TAG_BUTTONMANAGER, "Botao 2 solto");
+            digitalWrite(g_settings.Button2Led, LOW);
             ButtonEventData_t eventData;
             eventData.PressedTime = currentTime - g_button2PressedTime;
             eventData.Source = BUTTON_2;
@@ -60,6 +63,7 @@ void IRAM_ATTR OnButton2Pressed()
         else
         {
             ESP_LOGI(TAG_BUTTONMANAGER, "Botao 2 pressionado");
+            digitalWrite(g_settings.Button2Led, HIGH);
             g_button2PressedTime = currentTime;
         }
 
@@ -81,6 +85,7 @@ void IRAM_ATTR OnButton3Pressed()
         if (currentState)
         {
             ESP_LOGI(TAG_BUTTONMANAGER, "Botao 3 solto");
+            digitalWrite(g_settings.Button3Led, LOW);
             ButtonEventData_t eventData;
             eventData.PressedTime = currentTime - g_button3PressedTime;
             eventData.Source = BUTTON_3;
@@ -89,6 +94,7 @@ void IRAM_ATTR OnButton3Pressed()
         else
         {
             ESP_LOGI(TAG_BUTTONMANAGER, "Botao 3 pressionado");
+            digitalWrite(g_settings.Button3Led, HIGH);
             g_button3PressedTime = currentTime;
         }
         g_button3DebounceTime = currentTime;
@@ -117,6 +123,17 @@ esp_err_t ButtonManagerClass::begin(ButtonSettings_t settings)
     g_settings.Button1Pin = settings.Button1Pin;
     g_settings.Button2Pin = settings.Button2Pin;
     g_settings.Button3Pin = settings.Button3Pin;
+    g_settings.Button1Led = settings.Button1Led;
+    g_settings.Button2Led = settings.Button2Led;
+    g_settings.Button3Led = settings.Button3Led;    
+
+    pinMode(g_settings.Button1Led, OUTPUT);
+    pinMode(g_settings.Button2Led, OUTPUT);
+    pinMode(g_settings.Button3Led, OUTPUT);
+
+    digitalWrite(g_settings.Button1Led, LOW);
+    digitalWrite(g_settings.Button2Led, LOW);
+    digitalWrite(g_settings.Button3Led, LOW);
 
     pinMode(g_settings.Button1Pin, INPUT_PULLUP);
     pinMode(g_settings.Button2Pin, INPUT_PULLUP);

@@ -1,8 +1,11 @@
 #include "Engine.h"
 
 #define PIN_BUTTON_1 GPIO_NUM_39
+#define PIN_BUTTON_1_LED GPIO_NUM_12
 #define PIN_BUTTON_2 GPIO_NUM_34
+#define PIN_BUTTON_2_LED GPIO_NUM_4
 #define PIN_BUTTON_3 GPIO_NUM_35
+#define PIN_BUTTON_3_LED GPIO_NUM_21
 
 QueueHandle_t g_buttonOperationQueue;
 int g_buttonOperation = 0;
@@ -18,7 +21,10 @@ void EngineClass::begin()
     ButtonSettings_t settings = {
         .Button1Pin = PIN_BUTTON_1,
         .Button2Pin = PIN_BUTTON_2,
-        .Button3Pin = PIN_BUTTON_3
+        .Button3Pin = PIN_BUTTON_3,
+        .Button1Led = PIN_BUTTON_1_LED,
+        .Button2Led = PIN_BUTTON_2_LED,
+        .Button3Led = PIN_BUTTON_3_LED,
     };
 
     // inicializar botoes
