@@ -26,6 +26,10 @@ LedControl lc2 = LedControl(DISPLAY_2_DIN, DISPLAY_2_CLK, DISPLAY_2_CS, 1);
 /* we always wait a bit between updates of the display */
 unsigned long delaytime = 250;
 
+void write8sOn7Segment(LedControl *lc);
+void writeArduinoOn7Segment( LedControl *lc );
+void scrollDigits( LedControl *lc );
+
 void setup()
 {
     Serial.begin(115200);
@@ -40,10 +44,36 @@ void setup()
     lc1.clearDisplay(0);
     lc2.shutdown(0, false);
     /* Set the brightness to a medium values */
-    lc2.setIntensity(0, 3);
+    lc2.setIntensity(0, 15);
     /* and clear the display */
     lc2.clearDisplay(0);
+
+    write8sOn7Segment(&lc1);
+    write8sOn7Segment(&lc2);
 }
+
+void loop()
+{
+    // writeArduinoOn7Segment(&lc1);
+    // scrollDigits(&lc1);
+    // writeArduinoOn7Segment(&lc2);
+    // scrollDigits(&lc2);
+}
+
+void write8sOn7Segment(LedControl *lc)
+{
+    lc->clearDisplay(0);
+    lc->setDigit(0, 7, 8, false);
+    lc->setDigit(0, 6, 8, false);
+    lc->setDigit(0, 5, 8, false);
+    lc->setDigit(0, 4, 8, false);
+    lc->setDigit(0, 3, 8, false);
+    lc->setDigit(0, 2, 8, false);
+    lc->setDigit(0, 1, 8, false);
+    lc->setDigit(0, 0, 8, false);
+}
+
+
 
 /*
  This method will display the characters for the
@@ -90,12 +120,4 @@ void scrollDigits( LedControl *lc )
     }
     lc->clearDisplay(0);
     delay(delaytime);
-}
-
-void loop()
-{
-    writeArduinoOn7Segment(&lc1);
-    scrollDigits(&lc1);
-    writeArduinoOn7Segment(&lc2);
-    scrollDigits(&lc2);
 }

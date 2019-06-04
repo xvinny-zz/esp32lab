@@ -20,7 +20,7 @@ enum LoRaMessage_t
 };
 
 
-enum EngineState_t
+enum EngineState_e
 {
     ENGINE_STATE_INITIALIZING = 0x01,
     ENGINE_STATE_IDLE,

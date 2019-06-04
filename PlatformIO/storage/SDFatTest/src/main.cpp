@@ -1,84 +1,72 @@
-/*
-  SD card read/write
- This example shows how to read and write data to and from an SD card file
- The circuit:
- * SD card attached to SPI bus as follows:
- ** MOSI - pin 11
- ** MISO - pin 12
- ** CLK - pin 13
- created   Nov 2010
- by David A. Mellis
- modified 9 Apr 2012
- by Tom Igoe
- This example code is in the public domain.
+/**
+ * @file main.cpp
+ * @author Vinicius de Sa
+ * @brief Este exemplo demonstra o funcionamento da SdFat.
+ * @version 0.1
+ * @date 04/06/2019
+ * 
+ * @copyright Copyright VIDO.LA 2019: Todos os direitos reservados.
  */
 
+
 #include <SPI.h>
-//#include <SD.h>
 #include "SdFat.h"
-SdFat SD;
 
 #define SD_CS_PIN SS
-File myFile;
+
+SdFat SD;
+File file;
 
 void setup()
 {
-    // Open serial communications and wait for port to open:
     Serial.begin(115200);
-    
     while (!Serial);
 
-    Serial.print("Initializing SD card...");
+    ESP_LOGI("", "Inicializando o SD card...");
 
     if (!SD.begin(SD_CS_PIN))
     {
-        Serial.println("initialization failed!");
-        return;
+        ESP_LOGE("", "Falha na inicializacao. Reiniciando...");
+        ESP.restart();
     }
     
-    Serial.println("initialization done.");
+    Serial.println("SD inicializado! Abrindo arquivo teste.txt para escrita...");
 
-    // open the file. note that only one file can be open at a time,
-    // so you have to close this one before opening another.
-    myFile = SD.open("test.txt", FILE_WRITE);
+    file = SD.open("/teste.txt", FILE_WRITE);
 
-    // if the file opened okay, write to it:
-    if (myFile)
+    if (file)
     {
-        Serial.print("Writing to test.txt...");
-        myFile.println("testing 1, 2, 3.");
-        // close the file:
-        myFile.close();
-        Serial.println("done.");
+        ESP_LOGI("Escrevendo no arquivo teste.txt...");
+
+        file.println("Teste de escrita.");
+        file.close();
+        
+        ESP_LOGI("", "Dados escritos!");
     }
     else
     {
-        // if the file didn't open, print an error:
-        Serial.println("error opening test.txt");
+        ESP_LOGE("", "Falha ao abrir o arquivo teste.txt.");
     }
 
-    // re-open the file for reading:
-    myFile = SD.open("test.txt");
-    if (myFile)
+    file = SD.open("/teste.txt");
+    String content = "";
+    if (file)
     {
-        Serial.println("test.txt:");
-
-        // read from the file until there's nothing else in it:
-        while (myFile.available())
+        while (file.available())
         {
-            Serial.write(myFile.read());
+            content += (char)file.read();
         }
-        // close the file:
-        myFile.close();
+        
+        ESP_LOGI("", "Conteudo do arquivo: %s", content.c_str());
+
+        file.close();
     }
     else
     {
-        // if the file didn't open, print an error:
-        Serial.println("error opening test.txt");
+        ESP_LOGE("", "Falha ao abrir o arquivo teste.txt.");
     }
 }
 
 void loop()
 {
-    // nothing happens after setup
 }
