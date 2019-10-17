@@ -7,7 +7,7 @@
  * 
  * @copyright Copyright VIDO.LA 2019: Todos os direitos reservados.
  */
-#pragma once
+/*#pragma once
 
 #include <Arduino.h>
 #include <HTTPClient.h>
@@ -15,13 +15,14 @@
 #include "base64.h"
 #define TINY_GSM_MODEM_SIM800
 #include <TinyGsmClient.h>
+#include "ConnectionManager.h"
 
 #define GSM_TX 13
 #define GSM_RX 14
 
 #define SerialAT Serial1
 
-#define OPERATOR_TIM
+#define OPERATOR_ARQIA
 
 //////////////////////////////////
 //           VARIÁVEIS          //
@@ -44,6 +45,12 @@ const char user[] = "tim";
 const char pass[] = "tim";
 #endif
 
+enum ConnectionResult_e
+{
+    CONNECTION_RESULT_OK,
+    CONNECTION_RESULT_ERROR
+};
+
 enum TrackerOperation_e
 {
     TRACKER_OP_CONNECT = 0x01,
@@ -59,8 +66,10 @@ class TrackerWrapperClass
     public:
         TrackerWrapperClass();
         esp_err_t begin();
-        esp_err_t queueConnect();
-        esp_err_t queueDisconnect();
+        esp_err_t connect();
+        esp_err_t connectAsync(ConnectionEventHandler connectionEventHandler);
+        esp_err_t disconnect();
+        esp_err_t disconnectAsync(ConnectionEventHandler callback);
         esp_err_t queuePosition();
         esp_err_t queueLogin();
         esp_err_t queueHttpGet();
@@ -70,6 +79,7 @@ class TrackerWrapperClass
         //void postPosition(String id, double lat, double lng, int batteryLevel);
     private:
         esp_err_t connectNetwork();
+        ConnectionStatus_e m_connectionStatus;
 };
 
-extern TrackerWrapperClass TrackerWrapper;
+extern TrackerWrapperClass TrackerWrapper;*/

@@ -1,32 +1,10 @@
-#include "TrackerWrapper.h"
+/*#include "TrackerWrapper.h"
 
 TinyGsm modem(SerialAT);
 TinyGsmClient client(modem);
 volatile bool g_isConnected;
 QueueHandle_t g_operationQueue;
-const char *rootCACertificate =
-    "-----BEGIN CERTIFICATE-----\n"
-    "MIIDSjCCAjKgAwIBAgIQRK+wgNajJ7qJMDmGLvhAazANBgkqhkiG9w0BAQUFADA/\n"
-    "MSQwIgYDVQQKExtEaWdpdGFsIFNpZ25hdHVyZSBUcnVzdCBDby4xFzAVBgNVBAMT\n"
-    "DkRTVCBSb290IENBIFgzMB4XDTAwMDkzMDIxMTIxOVoXDTIxMDkzMDE0MDExNVow\n"
-    "PzEkMCIGA1UEChMbRGlnaXRhbCBTaWduYXR1cmUgVHJ1c3QgQ28uMRcwFQYDVQQD\n"
-    "Ew5EU1QgUm9vdCBDQSBYMzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB\n"
-    "AN+v6ZdQCINXtMxiZfaQguzH0yxrMMpb7NnDfcdAwRgUi+DoM3ZJKuM/IUmTrE4O\n"
-    "rz5Iy2Xu/NMhD2XSKtkyj4zl93ewEnu1lcCJo6m67XMuegwGMoOifooUMM0RoOEq\n"
-    "OLl5CjH9UL2AZd+3UWODyOKIYepLYYHsUmu5ouJLGiifSKOeDNoJjj4XLh7dIN9b\n"
-    "xiqKqy69cK3FCxolkHRyxXtqqzTWMIn/5WgTe1QLyNau7Fqckh49ZLOMxt+/yUFw\n"
-    "7BZy1SbsOFU5Q9D8/RhcQPGX69Wam40dutolucbY38EVAjqr2m7xPi71XAicPNaD\n"
-    "aeQQmxkqtilX4+U9m5/wAl0CAwEAAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNV\n"
-    "HQ8BAf8EBAMCAQYwHQYDVR0OBBYEFMSnsaR7LHH62+FLkHX/xBVghYkQMA0GCSqG\n"
-    "SIb3DQEBBQUAA4IBAQCjGiybFwBcqR7uKGY3Or+Dxz9LwwmglSBd49lZRNI+DT69\n"
-    "ikugdB/OEIKcdBodfpga3csTS7MgROSR6cz8faXbauX+5v3gTt23ADq1cEmv8uXr\n"
-    "AvHRAosZy5Q6XkjEGB5YGV8eAlrwDPGxrancWYaLbumR9YbK+rlmM6pZW87ipxZz\n"
-    "R8srzJmwN0jP41ZL9c8PDHIyh8bwRLtTcm1D9SZImlJnt1ir/md2cXjbDaJWFBM5\n"
-    "JDGFoqgCWjBH4d1QB7wCCZAA62RjYJsWvIjJEubSfZGL+T0yjWW06XyxV3bqxbYo\n"
-    "Ob8VZRzI9neWagqNdwvYkQsEjgfbKbYK7p2CNTUQ\n"
-    "-----END CERTIFICATE-----\n";
-
-
+ConnectionEventHandler OnConnectionResult;
 
 uint8_t isClientConnected()
 {
@@ -37,7 +15,7 @@ bool connectClient()
 {
     if (!isClientConnected())
     {
-        if (!client.connect(IPAddress(13,67,179,120), 5001))
+        if (!client.connect(IPAddress(13, 67, 179, 120), 5001))
             return false;
         else
             return true;
@@ -61,11 +39,11 @@ esp_err_t login()
 {
     if (!connectClient())
         return ESP_ERR_NOT_SUPPORTED;
-    
+
     String message;
-    
+
     message = "##,imei:" + modem.getIMEI() + ",A;";
-    
+
     time_t startTime = millis();
     size_t sent = client.print(message.c_str());
     ESP_LOGD("TRACKER", "Sent: %s (size: %d)", message.c_str(), sent);
@@ -80,8 +58,7 @@ esp_err_t login()
             ESP_LOGD("TRACKER", "Received: %s", received.c_str());
             break;
         }
-    }
-    while(client.available() && ((millis() - startTime) < 3000));
+    } while (client.available() && ((millis() - startTime) < 3000));
 
     disconnectClient();
 
@@ -90,7 +67,7 @@ esp_err_t login()
 
 esp_err_t heartbeat()
 {
-    if (!client.connect(IPAddress(13,67,179,120), 5001))
+    if (!client.connect(IPAddress(13, 67, 179, 120), 5001))
     {
         return ESP_ERR_NOT_SUPPORTED;
     }
@@ -101,7 +78,7 @@ esp_err_t heartbeat()
     size_t sent = client.print(message);
     ESP_LOGD("TRACKER", "Sent: %s (size: %d)", message.c_str(), sent);
 
-    while(client.available())
+    while (client.available())
     {
         String line = client.readString();
         ESP_LOGD("TRACKER", "Received: %s", line.c_str());
@@ -163,7 +140,7 @@ esp_err_t connectNetwork()
     return ESP_OK;
 }
 
-esp_err_t connect()
+esp_err_t connectModem()
 {
     ESP_LOGD("TRACKER", "Restartando o modem...");
 
@@ -233,11 +210,6 @@ esp_err_t disconnect()
     return ESP_OK;
 }
 
-esp_err_t getDevices()
-{
-    
-}
-
 void ConnectionMonitor(void *args)
 {
     TrackerOperation_e operation;
@@ -249,32 +221,36 @@ void ConnectionMonitor(void *args)
             switch (operation)
             {
             case TRACKER_OP_CONNECT:
+            {
                 ESP_LOGD("TRACKER", "Solicitada a conexao...");
-                connect();
+                esp_err_t result = connectModem();
+                if (OnConnectionResult != NULL)
+                    OnConnectionResult(result);
                 break;
+            }
             case TRACKER_OP_DISCONNECT:
+            {
                 ESP_LOGD("TRACKER", "Solicitada a desconexao...");
                 disconnect();
                 break;
+            }
             case TRACKER_OP_LOGIN:
+            {
                 ESP_LOGD("TRACKER", "Solicitado o login...");
                 login();
                 break;
+            }
             case TRACKER_OP_HEARTBEAT:
+            {
                 ESP_LOGD("TRACKER", "Enviando o heartbeat...");
                 heartbeat();
                 break;
-            case TRACKER_OP_GET_DEVICES:
-                ESP_LOGD("TRACKER", "Get devices...");
-                getDevices();
-                break;
-            // case TRACKER_OP_POSITION:
-            //     ESP_LOGD("TRACKER", "Solicitado o envio de posicao...");
-            //     postPosition("000002", -25.429708, -49.248222, 40);
-            //     break;
+            }
             default:
+            {
                 ESP_LOGE("TRACKER", "Operacao nao identificada...");
                 break;
+            }
             }
         }
 
@@ -292,6 +268,7 @@ esp_err_t TrackerWrapperClass::begin()
     delay(500);
 
     g_isConnected = false;
+    m_connectionStatus = CONNECTION_STATUS_DISCONNECTED;
     g_operationQueue = xQueueCreate(10, sizeof(TrackerOperation_e));
 
     xTaskCreate(ConnectionMonitor, "ConnectionMonitor", 10240, NULL, NULL, NULL);
@@ -299,7 +276,7 @@ esp_err_t TrackerWrapperClass::begin()
     return ESP_OK;
 }
 
-esp_err_t TrackerWrapperClass::queueConnect()
+esp_err_t TrackerWrapperClass::connect()
 {
     if (isConnected())
         return ESP_ERR_INVALID_STATE;
@@ -310,7 +287,20 @@ esp_err_t TrackerWrapperClass::queueConnect()
     return ESP_OK;
 }
 
-esp_err_t TrackerWrapperClass::queueDisconnect()
+esp_err_t TrackerWrapperClass::connectAsync(ConnectionEventHandler connectionEventHandler)
+{
+    if (m_connectionStatus != CONNECTION_STATUS_DISCONNECTED)
+        return ESP_ERR_INVALID_STATE;
+
+    OnConnectionResult = connectionEventHandler;
+
+    TrackerOperation_e operation = TRACKER_OP_CONNECT;
+    xQueueSend(g_operationQueue, &operation, portMAX_DELAY);
+
+    return ESP_OK;
+}
+
+esp_err_t TrackerWrapperClass::disconnect()
 {
     if (isConnected() == false)
         return ESP_ERR_INVALID_STATE;
@@ -370,4 +360,4 @@ bool TrackerWrapperClass::isConnected()
     return g_isConnected;
 }
 
-TrackerWrapperClass TrackerWrapper;
+TrackerWrapperClass TrackerWrapper;*/
