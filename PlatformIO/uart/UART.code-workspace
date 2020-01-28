@@ -1,0 +1,18 @@
+{
+	"folders": [
+        {
+            "name": "UARTTest2",
+            "path": "UARTTest2"
+        },
+        {
+            "path": "UARTInterrupt"
+        },
+        {
+            "path": "UARTServerClient"
+        },
+        {
+            "path": "UARTTest"
+        }
+    ],
+    "settings": {}
+}
