@@ -28,6 +28,7 @@ const char pass[] = "tim";
 
 String introduction = "Teste do GSM\n \
                       Comandos: \n \
+                      -> \"POWER\": Simula pressionar o botao power\n \
                       -> \"CONNECT\": Conectar\n \
                       -> \"DISCONNECT\": Desconectar\n \
                       -> \"SET_AUTO_RECONNECT:<enabled>\": Habilitar/desabilitar o auto-reconnect\n \
@@ -93,7 +94,15 @@ void loop()
 
     if (text.length() > 0)
     {
-        if (text.compareTo("CONNECT") == 0)
+        if (text.compareTo("POWER") == 0)
+        {
+            ESP_LOGI(TAG_MAIN, "Enviando comando POWER");
+            if (ConnectionManager.power() != ESP_OK)
+                ESP_LOGE(TAG_MAIN, "Nao eh possivel enviar o comando POWER.");
+            else
+                ESP_LOGD(TAG_MAIN, "Power enviado!");
+        }
+        else if (text.compareTo("CONNECT") == 0)
         {
             ESP_LOGI(TAG_MAIN, "Enviando comando CONNECT");
             if (ConnectionManager.connectAsync(OnConnected) != ESP_OK)

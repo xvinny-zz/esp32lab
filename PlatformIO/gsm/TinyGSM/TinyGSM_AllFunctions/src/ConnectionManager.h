@@ -36,9 +36,11 @@
 #define CON_ERR_0001        0x100
 #define CON_ERR_0002        0x101
 #define CON_ERR_0003        0x102
+#define CON_ERR_0004        0x103
 #define CON_ERR_MSG_0001    "Falha ao restartar o modem"
 #define CON_ERR_MSG_0002    "Rede nao disponivel"
 #define CON_ERR_MSG_0003    "Nao conectado a rede"
+#define CON_ERR_MSG_0004    "Timeout de comunicacao no power on"
 
 
 
@@ -303,6 +305,7 @@ class ConnectionManagerClass
         esp_err_t write(uint8_t * buffer, size_t length, size_t *written);
         bool isClientConnected();
         void setAutoReconnect(bool autoReconnect);
+        esp_err_t power();
     private:
         bool m_isStarted;
 };
