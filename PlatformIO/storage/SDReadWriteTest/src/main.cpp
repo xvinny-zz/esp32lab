@@ -11,6 +11,7 @@
 #include <SdFat.h>
 
 #define SD_CS_PIN SS
+#define SDSPEED SD_SCK_MHZ(20) // result: 101 tracks in 771 ms
 
 SdFat SD;
 File file;
@@ -22,10 +23,10 @@ void setup()
 
     ESP_LOGI("", "Inicializando o SD card...");
 
-    if (!SD.begin(SD_CS_PIN))
+    if (!SD.begin(SD_CS_PIN, SDSPEED))
     {
-        ESP_LOGE("", "Falha na inicializacao. Reiniciando...");
-        ESP.restart();
+        ESP_LOGE("", "Falha na inicializacao. Verifique as conexoes...");
+        while(1);
     }
 }
 
@@ -47,7 +48,7 @@ void loop()
     }
     else
     {
-        ESP_LOGE("", "[%lu] Falha ao abrir o arquivo teste.txt.", millis());
+        ESP_LOGE("", "[%lu] Falha ao escrever o arquivo teste.txt.", millis());
         while(1);
     }
 
@@ -66,7 +67,7 @@ void loop()
     }
     else
     {
-        ESP_LOGE("", "[%lu] Falha ao abrir o arquivo teste.txt.", millis());
+        ESP_LOGE("", "[%lu] Falha ao ler o arquivo teste.txt.", millis());
         while(1);
     }
 
