@@ -57,7 +57,7 @@
 #define TINY_GSM_RX_BUFFER 650
 
 // See all AT commands, if wanted
-#define DUMP_AT_COMMANDS
+//#define DUMP_AT_COMMANDS
 
 // Define the serial console for debug prints, if needed
 #define TINY_GSM_DEBUG SerialMon
@@ -89,8 +89,11 @@ const char wifiSSID[] = "qflux";
 const char wifiPass[] = "33285901ctba";
 
 // Server details
-const char server[] = "vsh.pp.ua";
-const char resource[] = "/TinyGSM/logo.txt";
+const char server[] = "anjostorage.blob.core.windows.net";
+const char resource[] = "/anjoapi01/firmwares/3/firmware.bin";
+// const char server[] = "vsh.pp.ua";
+// const char resource[] = "/TinyGSM/logo.txt";
+// https://anjostorage.blob.core.windows.net/anjoapi01/firmwares/3/firmware.bin
 const int port = 80;
 
 #include <TinyGsmClient.h>
@@ -125,7 +128,7 @@ void setup()
 {
     // Set console baud rate
     SerialMon.begin(115200);
-    delay(10);    
+    delay(10);
 
     // !!!!!!!!!!!
     // Set your reset, enable, power pins here
@@ -215,7 +218,10 @@ void loop()
 #endif
 
     SerialMon.print(F("Performing HTTP GET request... "));
+    http.beginRequest();
     int err = http.get(resource);
+    http.sendHeader("Range", "bytes=0-1023");
+    http.endRequest();
     if (err != 0)
     {
         SerialMon.println(F("failed to connect"));
@@ -240,23 +246,64 @@ void loop()
         SerialMon.println("    " + headerName + " : " + headerValue);
     }
 
-    int length = http.contentLength();
-    if (length >= 0)
+    int contentLength = http.contentLength();
+    if (contentLength >= 0)
     {
         SerialMon.print(F("Content length is: "));
-        SerialMon.println(length);
+        SerialMon.println(contentLength);
     }
     if (http.isResponseChunked())
     {
         SerialMon.println(F("The response is chunked"));
     }
 
-    String body = http.responseBody();
-    SerialMon.println(F("Response:"));
-    SerialMon.println(body);
+    // String body = http.responseBody();
+    // SerialMon.println(F("Response:"));
+    // SerialMon.println(body);
 
-    SerialMon.print(F("Body length is: "));
-    SerialMon.println(body.length());
+    // SerialMon.print(F("Body length is: "));
+    // SerialMon.println(body.length());
+
+    SerialMon.println(F("Reading content: "));
+    int currentByte;
+    int bufferSize = 1024;
+    int bytesRead = 0;
+    int currentBytesRead = 0;
+    uint8_t buffer[bufferSize + 1];
+
+    while (bytesRead < contentLength)
+    {
+        memset(buffer, 0, sizeof(buffer));
+        currentBytesRead = http.read(buffer, bufferSize);
+        if (currentBytesRead > 0)
+        {
+            bytesRead += currentBytesRead;
+            for (int i = 0 ; i < currentBytesRead ; i++)
+            {
+                SerialMon.printf("0x%02X ", buffer[i]);
+            }
+        }
+        else
+        {
+            ESP_LOGD("", "Incomplete read.");
+            break;
+        }
+    }
+
+    ESP_LOGD("", "Received %d bytes.", bytesRead);
+
+    // for (int i = 0; i < 20; i++)
+    // {
+    //     if (http.available())
+    //     {
+    //         currentByte = http.read();
+    //         if (currentByte != -1)
+    //         {
+    //             ESP_LOGD("", "0x%02X ", currentByte);
+    //         }
+    //     }
+    // }
+    SerialMon.println(F("Content read!"));
 
     // Shutdown
 

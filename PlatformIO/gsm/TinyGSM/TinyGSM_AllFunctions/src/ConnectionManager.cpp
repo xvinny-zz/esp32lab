@@ -24,7 +24,7 @@ esp_err_t connectNetwork();
 void setConnectionStatus(ConnectionStatus_e status);
 ConnectionStatus_e getConnectionStatus();
 esp_err_t setLastError(int id, const char *message);
-esp_err_t operationConnectClient(char * parameters);
+esp_err_t operationConnectClient(char *parameters);
 void processOperationQueue();
 void doAutoReconnect();
 
@@ -57,7 +57,6 @@ TinyGsmClient client(modem);
 ////////////////////////////////////////////////////////////////////////
 ConnectionEventHandler OnConnectResult;
 ConnectClientEventHandler OnConnectClientResult;
-
 
 ////////////////////////////////////////////////////////////////////////
 //                          FUNÇÕES ESTÁTICAS
@@ -109,7 +108,7 @@ void processOperationQueue()
 
 void doAutoReconnect()
 {
-    if ( (g_connectionSettings.AutoReconnect == false) || (millis() - g_lastReconnectCheck) < 60000)
+    if ((g_connectionSettings.AutoReconnect == false) || (millis() - g_lastReconnectCheck) < 60000)
         return;
 
     ConnectionStatus_e result;
@@ -139,12 +138,16 @@ ConnectionStatus_e getConnectionStatus()
 {
     ConnectionStatus_e result;
 
+    ESP_LOGD(TAG_CONNMGR, "Lendo status conexao.");
     xSemaphoreTake(m_lock, portMAX_DELAY);
     result = g_connectionStatus;
     xSemaphoreGive(m_lock);
 
+    ESP_LOGD(TAG_CONNMGR, "Status lido.");
+
     if (result == CONNECTION_STATUS_CONNECTED)
     {
+        ESP_LOGD(TAG_CONNMGR, "Ja conectado.");
         if ((modem.isGprsConnected() == false) || (modem.isNetworkConnected() == false))
         {
             ESP_LOGD(TAG_CONNMGR, "A conexao caiu.");
@@ -184,7 +187,7 @@ esp_err_t setLastError(int id, const char *message)
     m_lastError.Code = id;
     memset(m_lastError.Message, 0, sizeof(m_lastError.Message));
     strcpy(m_lastError.Message, message);
-    xSemaphoreGive(m_lock);    
+    xSemaphoreGive(m_lock);
 
     return id;
 }
@@ -249,17 +252,17 @@ esp_err_t operationConnect()
     return ESP_OK;
 }
 
-esp_err_t operationConnectClient(char * parameters)
+esp_err_t operationConnectClient(char *parameters)
 {
-    char * pch;
-    const char * separator = ";";
+    char *pch;
+    const char *separator = ";";
     int count = 0;
-    char * server;
+    char *server;
     int port = 0;
     time_t timeout_s = 0;
 
     ESP_LOGD(TAG_CONNMGR, "Connect Client Parameters: %s", parameters);
-    
+
     pch = strtok(parameters, separator);
     while (pch != NULL)
     {
@@ -272,7 +275,7 @@ esp_err_t operationConnectClient(char * parameters)
         {
             port = atoi(pch);
         }
-        else if(count == 2)
+        else if (count == 2)
         {
             timeout_s = atol(pch);
         }
@@ -293,7 +296,7 @@ esp_err_t operationConnectClient(char * parameters)
     ConnectionStatus_e status = getConnectionStatus();
     if (status != CONNECTION_STATUS_CONNECTED)
         return setLastError(ESP_ERR_INVALID_STATE, "Falha ao conectar o cliente: Nao conectado a rede.");
-    
+
     g_currentServer = String(server);
 
     ESP_LOGD(TAG_CONNMGR, "Conectando no servidor...", server, port, timeout_s);
@@ -330,7 +333,7 @@ esp_err_t connectNetwork()
     if (!modem.restart())
     {
         // 100 - "Falha ao restartar o modem"
-        setLastError(CON_ERR_0001, CON_ERR_MSG_0001);        
+        setLastError(CON_ERR_0001, CON_ERR_MSG_0001);
         return ESP_ERR_INVALID_STATE;
     }
 
@@ -351,7 +354,7 @@ esp_err_t connectNetwork()
         setLastError(CON_ERR_0003, CON_ERR_MSG_0003);
         return ESP_ERR_INVALID_STATE;
     }
-    
+
     ESP_LOGD(TAG_CONNMGR, "Rede conectada!");
 
     return ESP_OK;
@@ -376,6 +379,13 @@ esp_err_t ConnectionManagerClass::begin(ConnectionSettings_t settings)
     // "[begin] (APN:%s,User:%s,Password:%s)"
     ESP_LOGD(TAG_CONNMGR, CONNMGR_LOGD_0001, settings.APN, settings.User, settings.Password);
 
+    g_lastReconnectCheck = 0;
+    g_currentServer = "";
+    g_connectionOperationQueue = xQueueCreate(20, sizeof(AsyncOperationData_t));
+    m_lock = xSemaphoreCreateMutex();
+    if (m_lock == NULL)
+        return ESP_ERR_INVALID_STATE;
+
     if (strlen(settings.APN) <= 0)
     {
         setLastError(1, "[begin]Invalid APN");
@@ -389,9 +399,14 @@ esp_err_t ConnectionManagerClass::begin(ConnectionSettings_t settings)
     strcpy(g_connectionSettings.User, settings.User);
     strcpy(g_connectionSettings.Password, settings.Password);
 
+    //SerialAT.begin(115200, SERIAL_8N1, GSM_TX, GSM_RX, false);
     SerialAT.begin(115200, SERIAL_8N1, GSM_TX, GSM_RX, false);
     delay(500);
- 
+
+    xTaskCreate(OperationMonitor, "OperationMonitor", 10240, NULL, NULL, &m_operationMonitorHandle);
+
+    setConnectionStatus(CONNECTION_STATUS_DISCONNECTED);
+
     if (!SD.begin(GPIO_NUM_5, SD_SCK_MHZ(20)))
     {
         // Falha ao montar o SD card.
@@ -399,22 +414,13 @@ esp_err_t ConnectionManagerClass::begin(ConnectionSettings_t settings)
         return ESP_ERR_INVALID_STATE;
     }
 
-    g_lastReconnectCheck = 0;
-    g_currentServer = "";
-    g_connectionOperationQueue = xQueueCreate(20, sizeof(AsyncOperationData_t));
-    m_lock = xSemaphoreCreateMutex();
-    if (m_lock == NULL)
-        return ESP_ERR_INVALID_STATE;
-
-    xTaskCreate(OperationMonitor, "OperationMonitor", 10240, NULL, NULL, &m_operationMonitorHandle);
-
-    setConnectionStatus(CONNECTION_STATUS_DISCONNECTED);
-
     return ESP_OK;
 }
 
 esp_err_t ConnectionManagerClass::connectAsync(ConnectionEventHandler handler, bool autoReconnect)
 {
+    ESP_LOGD(TAG_CONNMGR, "Conectando async...");
+
     if (getConnectionStatus() != CONNECTION_STATUS_DISCONNECTED)
         return ESP_ERR_INVALID_STATE;
 
@@ -423,12 +429,19 @@ esp_err_t ConnectionManagerClass::connectAsync(ConnectionEventHandler handler, b
     AsyncOperationData_t data;
     data.Operation = CON_OP_CONNECT;
     data.Time = millis();
-    
+
+    ESP_LOGD(TAG_CONNMGR, "Configurando auto reconnect...");
     setAutoReconnect(autoReconnect);
+
+    ESP_LOGD(TAG_CONNMGR, "Configurando connection status...");
     setConnectionStatus(CONNECTION_STATUS_CONNECTING);
-    
+
+    ESP_LOGD(TAG_CONNMGR, "Enviando comando para conectar...");
+
     xQueueSend(g_connectionOperationQueue, &data, portMAX_DELAY);
-    
+
+    ESP_LOGD(TAG_CONNMGR, "Comando enviado!");
+
     return ESP_OK;
 }
 
@@ -449,7 +462,7 @@ ConnectionError_t ConnectionManagerClass::getLastError()
     error.Code = m_lastError.Code;
     memset(error.Message, 0, sizeof(error.Message));
     strcpy(error.Message, m_lastError.Message);
-    xSemaphoreGive(m_lock);    
+    xSemaphoreGive(m_lock);
 
     return error;
 }
@@ -478,7 +491,6 @@ bool ConnectionManagerClass::isClientConnected()
 {
     return client.connected();
 }
-
 
 esp_err_t ConnectionManagerClass::getSimCCID(String *result)
 {
@@ -675,24 +687,24 @@ esp_err_t ConnectionManagerClass::sendSMS(String number, String text)
     }
 
     ESP_LOGD(TAG_CONNMGR, "SMD de [%s]: [%s]", number.c_str(), text.c_str());
-    
+
     if (modem.sendSMS(number, text))
         return ESP_OK;
     else
         return ESP_FAIL;
 }
 
-esp_err_t ConnectionManagerClass::connectClient(const char * server, int port, int timeout_s)
+esp_err_t ConnectionManagerClass::connectClient(const char *server, int port, int timeout_s)
 {
     ESP_LOGD(TAG_CONNMGR, "Connect client (server: %s, port: %lu, timeout: %d)", server, port, timeout_s);
 
     ConnectionStatus_e status = getConnectionStatus();
     if (status != CONNECTION_STATUS_CONNECTED)
         return setLastError(ESP_ERR_INVALID_STATE, "Falha ao conectar o cliente: Nao conectado a rede.");
-    
+
     if (isClientConnected())
         return setLastError(ESP_ERR_INVALID_STATE, "Falha ao conectar ao client: Ja conectado");
-    
+
     g_currentServer = String(server);
 
     if (!client.connect(server, port, timeout_s))
@@ -701,7 +713,7 @@ esp_err_t ConnectionManagerClass::connectClient(const char * server, int port, i
     return ESP_OK;
 }
 
-esp_err_t ConnectionManagerClass::connectClientAsync(ConnectClientEventHandler handler, const char * server, int port, int timeout_s)
+esp_err_t ConnectionManagerClass::connectClientAsync(ConnectClientEventHandler handler, const char *server, int port, int timeout_s)
 {
     ConnectionStatus_e status = getConnectionStatus();
     if (status != CONNECTION_STATUS_CONNECTED)
@@ -725,7 +737,7 @@ esp_err_t ConnectionManagerClass::connectClientAsync(ConnectClientEventHandler h
     data.Time = millis();
 
     xQueueSend(g_connectionOperationQueue, &data, portMAX_DELAY);
-    
+
     return ESP_OK;
 }
 
@@ -739,7 +751,7 @@ esp_err_t ConnectionManagerClass::disconnectClient()
     return ESP_OK;
 }
 
-esp_err_t ConnectionManagerClass::downloadFile(const char * resource, uint32_t fileSize, const char * destinationFile, time_t timeout)
+esp_err_t ConnectionManagerClass::downloadFile(const char *resource, uint32_t fileSize, const char *destinationFile, time_t timeout)
 {
     ESP_LOGD(TAG_CONNMGR, "Download File (name: %s, size: %lu, destination: %s, timeout: %lu", resource, fileSize, destinationFile, timeout);
 
@@ -762,9 +774,9 @@ esp_err_t ConnectionManagerClass::downloadFile(const char * resource, uint32_t f
     ESP_LOGD(TAG_CONNMGR, "%s", message.c_str());
 
     long startTime = millis();
-    while (client.available() == 0) 
+    while (client.available() == 0)
     {
-        if ( (millis() - startTime) > timeout) 
+        if ((millis() - startTime) > timeout)
         {
             ESP_LOGE(TAG_CONNMGR, ">>> Client Timeout !");
             return ESP_FAIL;
@@ -774,18 +786,18 @@ esp_err_t ConnectionManagerClass::downloadFile(const char * resource, uint32_t f
     ESP_LOGD(TAG_CONNMGR, "Reading response header");
     uint32_t contentLength = fileSize;
 
-    while (client.available()) 
+    while (client.available())
     {
         String line = client.readStringUntil('\n');
         line.trim();
-        ESP_LOGD(TAG_CONNMGR, "%s", line.c_str());    // Uncomment this to show response header
+        ESP_LOGD(TAG_CONNMGR, "%s", line.c_str()); // Uncomment this to show response header
         line.toLowerCase();
-        
-        if (line.startsWith("content-length:")) 
+
+        if (line.startsWith("content-length:"))
         {
             contentLength = line.substring(line.lastIndexOf(':') + 1).toInt();
-        } 
-        else if (line.length() == 0) 
+        }
+        else if (line.length() == 0)
         {
             break;
         }
@@ -799,10 +811,10 @@ esp_err_t ConnectionManagerClass::downloadFile(const char * resource, uint32_t f
     String incoming = "";
 
     File file = SD.open(destinationFile, FILE_WRITE);
-    
-    while (readLength < contentLength && client.connected() && (millis() - startTime) < timeout) 
+
+    while (readLength < contentLength && client.connected() && (millis() - startTime) < timeout)
     {
-        while (client.available()) 
+        while (client.available())
         {
             uint8_t c = client.read();
             if (readLength < 10240)
@@ -812,9 +824,9 @@ esp_err_t ConnectionManagerClass::downloadFile(const char * resource, uint32_t f
             file.print((char)c);
             readLength++;
 
-            if (readLength % (contentLength / 13) == 0) 
-                ESP_LOGD(TAG_CONNMGR, "Baixado %.2f%%", (100.0 * readLength) / contentLength );
-            
+            if (readLength % (contentLength / 13) == 0)
+                ESP_LOGD(TAG_CONNMGR, "Baixado %.2f%%", (100.0 * readLength) / contentLength);
+
             startTime = millis();
         }
     }
@@ -832,7 +844,7 @@ esp_err_t ConnectionManagerClass::downloadFile(const char * resource, uint32_t f
     return ESP_OK;
 }
 
-esp_err_t ConnectionManagerClass::httpGet(const char * partialUrl, String * result, int timeout)
+esp_err_t ConnectionManagerClass::httpGet(const char *partialUrl, String *result, int timeout)
 {
     ESP_LOGD(TAG_CONNMGR, "HTTP GET (url: %s", partialUrl);
 
@@ -844,7 +856,7 @@ esp_err_t ConnectionManagerClass::httpGet(const char * partialUrl, String * resu
         return setLastError(ESP_ERR_INVALID_STATE, "Falha ao baixar o arquivo: Nao conectado ao servidor.");
 
     String message = String("GET ") + partialUrl + " HTTP/1.0\r\n";
-    
+
     client.print(message.c_str());
     ESP_LOGD(TAG_CONNMGR, "%s", message.c_str());
     message = String("Host: ") + g_currentServer.c_str() + "\r\n";
@@ -855,9 +867,9 @@ esp_err_t ConnectionManagerClass::httpGet(const char * partialUrl, String * resu
     ESP_LOGD(TAG_CONNMGR, "%s", message.c_str());
 
     long startTime = millis();
-    while (client.available() == 0) 
+    while (client.available() == 0)
     {
-        if ( (millis() - startTime) > timeout) 
+        if ((millis() - startTime) > timeout)
         {
             ESP_LOGE(TAG_CONNMGR, ">>> Client Timeout !");
             return ESP_FAIL;
@@ -867,18 +879,18 @@ esp_err_t ConnectionManagerClass::httpGet(const char * partialUrl, String * resu
     ESP_LOGD(TAG_CONNMGR, "Reading response header");
     uint32_t contentLength = 0;
 
-    while (client.available()) 
+    while (client.available())
     {
         String line = client.readStringUntil('\n');
         line.trim();
-        ESP_LOGD(TAG_CONNMGR, "%s", line.c_str());    // Uncomment this to show response header
+        ESP_LOGD(TAG_CONNMGR, "%s", line.c_str()); // Uncomment this to show response header
         line.toLowerCase();
-        
-        if (line.startsWith("content-length:")) 
+
+        if (line.startsWith("content-length:"))
         {
             contentLength = line.substring(line.lastIndexOf(':') + 1).toInt();
-        } 
-        else if (line.length() == 0) 
+        }
+        else if (line.length() == 0)
         {
             break;
         }
@@ -891,9 +903,9 @@ esp_err_t ConnectionManagerClass::httpGet(const char * partialUrl, String * resu
     unsigned long timeElapsed = millis();
     String incoming = "";
 
-    while (readLength < contentLength && client.connected() && (millis() - startTime) < timeout) 
+    while (readLength < contentLength && client.connected() && (millis() - startTime) < timeout)
     {
-        while (client.available()) 
+        while (client.available())
         {
             uint8_t c = client.read();
             if (readLength < 10240)
@@ -901,9 +913,9 @@ esp_err_t ConnectionManagerClass::httpGet(const char * partialUrl, String * resu
 
             readLength++;
 
-            if (readLength % (contentLength / 13) == 0) 
-                ESP_LOGD(TAG_CONNMGR, "Baixado %.2f%%", (100.0 * readLength) / contentLength );
-            
+            if (readLength % (contentLength / 13) == 0)
+                ESP_LOGD(TAG_CONNMGR, "Baixado %.2f%%", (100.0 * readLength) / contentLength);
+
             startTime = millis();
         }
     }
@@ -921,11 +933,11 @@ esp_err_t ConnectionManagerClass::httpGet(const char * partialUrl, String * resu
     return ESP_OK;
 }
 
-esp_err_t ConnectionManagerClass::write(uint8_t * buffer, size_t length, size_t *written)
+esp_err_t ConnectionManagerClass::write(uint8_t *buffer, size_t length, size_t *written)
 {
     int outputLen = length * 2;
     char output[outputLen + 1];
-    
+
     Utils.toHexString(buffer, length, output, outputLen + 1);
     ESP_LOGD(TAG_CONNMGR, "Executando write (buffer: %s)", output);
 
@@ -945,7 +957,33 @@ void ConnectionManagerClass::setAutoReconnect(bool autoReconnect)
 {
     xSemaphoreTake(m_lock, portMAX_DELAY);
     g_connectionSettings.AutoReconnect = autoReconnect;
-    xSemaphoreGive(m_lock);    
+    xSemaphoreGive(m_lock);
+}
+
+esp_err_t ConnectionManagerClass::power()
+{
+    gpio_num_t powerPin = GPIO_NUM_15;
+
+    ESP_LOGD("", "Iniciando procedimento de power...");
+
+    // subir o pino POWER por mais de 1 segundo e baixar ela de volta
+    pinMode(powerPin, OUTPUT);
+    digitalWrite(powerPin, LOW);
+    delay(250);
+
+    SerialAT.readString();
+
+    ESP_LOGD("", "[%lu] Subindo nivel da GPIO %d...", millis(), powerPin);
+    digitalWrite(powerPin, HIGH);
+    delay(1200);
+
+    ESP_LOGD("", "[%lu] Baixando nivel da GPIO %d...", millis(), powerPin);
+    digitalWrite(powerPin, LOW);
+    delay(2000);
+
+    ESP_LOGD("", "Procedimento de power finalizado...");
+
+    return ESP_OK;
 }
 
 ConnectionManagerClass ConnectionManager;

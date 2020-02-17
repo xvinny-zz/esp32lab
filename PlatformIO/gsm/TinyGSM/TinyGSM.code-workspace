@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "TinyGSM_HttpClient"
+		},
+		{
+			"path": "TinyGSM_AllFunctions"
+		},
+		{
+			"path": "TinyGSM_MQTT"
+		}
+	],
+	"settings": {}
+}

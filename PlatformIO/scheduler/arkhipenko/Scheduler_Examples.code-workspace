@@ -1,0 +1,16 @@
+{
+	"folders": [
+        {
+            "path": "Scheduler_example01"
+        },
+        {
+            "name": "Scheduler_example02",
+            "path": "Scheduler_example02"
+        },
+        {
+            "name": "Scheduler_example04",
+            "path": "Scheduler_example04"
+        }
+    ],
+    "settings": {}
+}
