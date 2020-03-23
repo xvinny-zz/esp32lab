@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "Crypto_AES_ECB"
+		},
+		{
+			"name": "Encoding_Base64",
+			"path": "Encoding_Base64"
+		}
+	],
+    "settings": {}
+}
