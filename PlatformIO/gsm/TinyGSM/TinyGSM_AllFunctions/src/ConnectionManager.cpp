@@ -399,8 +399,8 @@ esp_err_t ConnectionManagerClass::begin(ConnectionSettings_t settings)
     strcpy(g_connectionSettings.User, settings.User);
     strcpy(g_connectionSettings.Password, settings.Password);
 
-    //SerialAT.begin(115200, SERIAL_8N1, GSM_TX, GSM_RX, false);
     SerialAT.begin(115200, SERIAL_8N1, GSM_TX, GSM_RX, false);
+    //SerialAT.begin(9600, SERIAL_8N1, GSM_TX, GSM_RX, false);
     delay(500);
 
     xTaskCreate(OperationMonitor, "OperationMonitor", 10240, NULL, NULL, &m_operationMonitorHandle);
@@ -962,7 +962,7 @@ void ConnectionManagerClass::setAutoReconnect(bool autoReconnect)
 
 esp_err_t ConnectionManagerClass::power()
 {
-    gpio_num_t powerPin = GPIO_NUM_15;
+    gpio_num_t powerPin = GPIO_NUM_12;
 
     ESP_LOGD("", "Iniciando procedimento de power...");
 

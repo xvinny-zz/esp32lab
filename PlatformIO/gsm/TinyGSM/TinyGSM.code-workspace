@@ -10,5 +10,9 @@
 			"path": "TinyGSM_MQTT"
 		}
 	],
-	"settings": {}
+    "settings": {
+        "files.associations": {
+            "numeric": "cpp"
+        }
+    }
 }

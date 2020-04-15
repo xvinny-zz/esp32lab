@@ -23,7 +23,7 @@
 //                          DEFINES
 ////////////////////////////////////////////////////////////////////////
 // Descomente para debugar o GSM
-//#define DEBUG_GSM
+#define DEBUG_GSM
 
 #define GSM_TX 13
 #define GSM_RX 14
