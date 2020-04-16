@@ -12,7 +12,8 @@
 	],
     "settings": {
         "files.associations": {
-            "numeric": "cpp"
+            "numeric": "cpp",
+            "*.tpp": "cpp"
         }
     }
 }

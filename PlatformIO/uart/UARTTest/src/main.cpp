@@ -1,6 +1,5 @@
 #include <Arduino.h>
 
-
 //#define SerialAux Serial1
 #define SerialAux Serial2
 
@@ -11,7 +10,6 @@ const gpio_num_t GSM_RX = GPIO_NUM_14;
 
 String bufferSerialAux;
 String bufferSerial;
-
 
 void setup() 
 {
